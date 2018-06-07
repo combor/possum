@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/FidelityInternational/possum/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -49,17 +50,21 @@ func (c *Controller) GetState(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", loadCORSAllowed())
 	myURIs, err := utils.GetMyApplicationURIs()
 	if standardError(err, w) {
+		log.WithFields(log.Fields{"package": "webServer", "function": "GetState", "src": r.RemoteAddr, "URI": r.RequestURI}).Debugf("Can't get application URIs: %s, Request: ", err.Error())
 		return
 	}
 	if len(myURIs) == 0 {
 		customError(w, http.StatusGone, "No uris were configured")
+		log.WithFields(log.Fields{"package": "webServer", "function": "GetState", "src": r.RemoteAddr, "URI": r.RequestURI}).Debugf("No uris were configured: %v", myURIs)
 		return
 	}
 	passel, err := utils.GetPassel()
 	if standardError(err, w) {
+		log.WithFields(log.Fields{"package": "webServer", "function": "GetState", "src": r.RemoteAddr, "URI": r.RequestURI}).Debugf("Can't get passel: %s", err.Error())
 		return
 	}
 	if len(passel) == 0 {
+		log.WithFields(log.Fields{"package": "webServer", "function": "GetState", "src": r.RemoteAddr, "URI": r.RequestURI}).Debugf("Passel had 0 members")
 		customError(w, http.StatusGone, "Passel had 0 members")
 		return
 	}
@@ -68,6 +73,7 @@ func (c *Controller) GetState(w http.ResponseWriter, r *http.Request) {
 			if uriPossumMatch(uri, possum) {
 				state, err := utils.GetState(c.DB, possum)
 				if standardError(err, w) {
+					log.WithFields(log.Fields{"package": "webServer", "function": "GetState", "src": r.RemoteAddr, "URI": r.RequestURI}).Debugf("%v", err)
 					return
 				}
 				w.WriteHeader(http.StatusOK)
@@ -76,6 +82,7 @@ func (c *Controller) GetState(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	log.WithFields(log.Fields{"package": "webServer", "function": "GetState", "src": r.RemoteAddr, "URI": r.RequestURI}).Debug("Could not match any possum in db")
 	w.WriteHeader(http.StatusGone)
 	fmt.Fprintf(w, `{"error": "Could not match any possum in db"}`)
 }

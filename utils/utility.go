@@ -6,13 +6,15 @@ import (
 	"reflect"
 
 	"github.com/cloudfoundry-community/go-cfenv"
+	log "github.com/sirupsen/logrus"
 )
 
 // GetDBConnectionDetails - Loads database connection details from UPS "possum-db"
 func GetDBConnectionDetails() (string, error) {
 	appEnv, err := cfenv.Current()
 	if err != nil {
-		return "", err
+		log.WithFields(log.Fields{"package": "utils", "function": "GetDBConnectionDetails"}).Debugf("Can't get DB details from CF env: %s", err)
+		return "", fmt.Errorf("Can't get DB details from CF env. Check DB binding: %s", err)
 	}
 
 	service, err := appEnv.Services.WithName("possum-db")
@@ -57,13 +59,12 @@ func SetupStateDB(db *sql.DB) error {
 	)`)
 
 	if err != nil {
-		fmt.Println(err)
+		log.WithFields(log.Fields{"package": "utils", "function": "SetupStateDB"}).Debugf("Can't can't create table: %s", err)
 		return err
 	}
 
 	passel, err := GetPassel()
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -72,14 +73,15 @@ func SetupStateDB(db *sql.DB) error {
 		row := db.QueryRow("SELECT * FROM state WHERE possum=?", possum)
 		err := row.Scan(&possumdb, &state)
 		if err != nil {
+			log.WithFields(log.Fields{"package": "utils", "function": "SetupStateDB"}).Debugf("Error getting row from DB %s", err.Error())
 			if err.Error() == "sql: no rows in result set" {
 				_, insertErr := db.Exec("INSERT INTO state VALUES (?, ?)", possum, "alive")
 				if insertErr != nil {
-					fmt.Println(insertErr)
+					log.WithFields(log.Fields{"package": "utils", "function": "SetupStateDB"}).Debugf("Error inserting into DB %s", insertErr.Error())
 					return insertErr
 				}
 			} else {
-				fmt.Println(err)
+				log.WithFields(log.Fields{"package": "utils", "function": "SetupStateDB"}).Debug(err.Error())
 				return err
 			}
 		}
