@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/handlers"
 	log "github.com/sirupsen/logrus"
 
 	webs "github.com/FidelityInternational/possum/web_server"
@@ -27,7 +28,8 @@ func main() {
 		log.WithFields(log.Fields{"package": "main", "function": "main"}).Fatal("PORT not set. Exiting.")
 	}
 	log.WithFields(log.Fields{"package": "main", "function": "main"}).Infof("Listening on port: %s", port)
-	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+	loggedRouter := handlers.CombinedLoggingHandler(os.Stdout, router)
+	err = http.ListenAndServe(fmt.Sprintf(":%s", port), loggedRouter)
 	if err != nil {
 		log.WithFields(log.Fields{"package": "main", "function": "main"}).Fatal(err)
 	}
